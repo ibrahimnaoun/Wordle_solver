@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wordle Solver</title>
+<style>
+:root{color-scheme:dark;--bg:#101411;--panel:#1a211c;--panel2:#202922;--text:#f2f6f2;--muted:#a9b5aa;--line:#344137;--green:#538d4e;--yellow:#b59f3b;--gray:#59635c;--accent:#b9e6b0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1d2b20 0,#101411 55%);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:30px 18px 56px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.kicker{color:var(--accent);text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:800}h1{font-size:clamp(32px,5vw,48px);line-height:1.05;margin:8px 0 10px;letter-spacing:-.04em}p{color:var(--muted);margin:0 0 14px}.pill{border:1px solid var(--line);border-radius:999px;padding:7px 12px;color:var(--accent);font-size:13px;white-space:nowrap}
+.layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);gap:16px;margin-top:24px}.panel{background:rgba(26,33,28,.96);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 14px 45px #0002}.panel h2{font-size:18px;margin:0 0 4px}.hint{font-size:13px;color:var(--muted);margin-bottom:17px}
+.guess-list{display:grid;gap:12px}.guess-row{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:center}.guess-number{font-size:12px;font-weight:800;color:var(--muted);text-align:center}.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.tile{width:100%;aspect-ratio:1;border:2px solid #526055;border-radius:10px;background:#111713;color:white;text-align:center;text-transform:uppercase;font-weight:800;font-size:clamp(20px,4vw,30px);min-width:0;outline:none}.tile:focus{border-color:var(--accent)}.tile.green{background:var(--green);border-color:var(--green)}.tile.yellow{background:var(--yellow);border-color:var(--yellow)}.tile.gray{background:var(--gray);border-color:var(--gray)}
+.small-label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:var(--muted);margin:18px 0 8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.textinput{width:100%;background:#111713;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;outline:none}.textinput:focus{border-color:var(--accent)}
+button,.file-button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:10px 13px;font:600 14px system-ui;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}button:hover,.file-button:hover{border-color:var(--accent)}button.primary{background:var(--accent);color:#142016;border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}
+.actionrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:12px}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.stat{font-size:36px;font-weight:800;letter-spacing:-.04em}.stat-sub{font-size:13px;color:var(--muted)}.result-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}.wordlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px;max-height:450px;overflow:auto;padding-right:3px}.word{background:#111713;border:1px solid var(--line);border-radius:9px;padding:9px 8px;text-align:center;letter-spacing:.12em;font-weight:800;font-size:16px}.empty{padding:24px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px;margin-top:14px}
+.notice{font-size:13px;border-radius:12px;padding:12px 13px;background:#273229;border:1px solid #3c5440;color:#dcebdd;margin-top:16px}.notice.warn{background:#302c1b;border-color:#65572b;color:#f0e4b6}.status{font-size:12px;color:var(--muted);margin-top:8px}.file-input{display:none}.full{grid-column:1/-1}.footer{font-size:12px;color:var(--muted);margin-top:20px}a{color:var(--accent)}@media(max-width:760px){.layout{grid-template-columns:1fr}.panel{padding:16px}.wordlist{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><div class="kicker">Offline • No AI • No API</div><h1>Wordle Solver</h1><p>Enter the clues from your board. This app checks a local word list and removes words that cannot fit.</p></div>
+    <div class="pill" id="dictBadge">No dictionary loaded</div>
+  </div>
+  <div class="layout">
+    <section class="panel">
+      <h2>Your clues</h2>
+      <div class="hint">Enter each guess on its own row. Tiles start gray; click to cycle gray → green → yellow. Right-click cycles backward.</div>
+      <div class="guess-list" id="guessRows" aria-label="Five Wordle guesses"></div>
+      <div class="legend"><span><i class="dot" style="background:var(--green)"></i>Green: exact position</span><span><i class="dot" style="background:var(--yellow)"></i>Yellow: elsewhere</span><span><i class="dot" style="background:var(--gray)"></i>Gray: absent</span></div>
+      <div class="small-label">Gray / absent letters</div>
+      <input id="grayLetters" class="textinput" maxlength="26" placeholder="e.g. t, s, o" autocomplete="off" spellcheck="false">
+      <div class="hint" style="margin:7px 0 0">Optional extra exclusions. Letters marked green or yellow in any row will not be excluded.</div>
+      <div class="actionrow"><button class="primary" id="solveBtn">Find matching words</button><button id="clearBtn">Clear clues</button></div>
+      <div class="notice">All five rows are combined. Duplicate letters are handled using Wordle-style minimum and maximum letter counts when you mark every tile in a guess.</div>
+    </section>
+    <section class="panel">
+      <div class="result-head"><div><h2>Possible words</h2><div class="hint" style="margin:4px 0 0">Alphabetical matches</div></div><div style="text-align:right"><div class="stat" id="count">0</div><div class="stat-sub">matches</div></div></div>
+      <div id="results" class="empty">Load a dictionary, enter clues, then find matches.</div>
+      <div class="actionrow"><button id="copyBtn" disabled>Copy results</button><button id="downloadBtn" disabled>Export .txt</button></div>
+      <div class="status" id="resultStatus"></div>
+    </section>
+    <section class="panel full">
+      <h2>Your dictionary</h2>
+      <div class="hint">Load any plain-text word list. One word per line works best; the app keeps unique five-letter words containing only A–Z.</div>
+      <div class="row"><label class="file-button" for="dictionaryFile">Choose word-list file</label><input class="file-input" type="file" id="dictionaryFile" accept=".txt,.dic,.list,text/plain"><button id="sampleBtn">Load tiny test list</button></div>
+      <div class="status" id="dictionaryStatus">No word list loaded yet. You can build and test the app now with the tiny test list, then replace it with your full dictionary later.</div>
+      <div class="notice warn"><strong>Note:</strong> a comprehensive dictionary may include obscure words the official Wordle game won't accept. The solver only checks whether a word is in your loaded list and fits the clues.</div>
+    </section>
+  </div>
+  <div class="footer">Clues and dictionary stay in your browser. This file does not call any APIs or send data anywhere.</div>
+</main>
+<script>
+(() => {
+"use strict";
+let words = [];
+let guesses = Array.from({length:5},()=>Array.from({length:5},()=>({letter:"",color:"gray"})));
+let matches = [];
+const $ = id => document.getElementById(id);
+const colors = ["gray","green","yellow"];
+function makeTiles(){
+ const wrap=$("guessRows"); wrap.innerHTML="";
+ guesses.forEach((guess,row)=>{
+   const line=document.createElement("div");line.className="guess-row";
+   const number=document.createElement("div");number.className="guess-number";number.textContent=String(row+1);line.appendChild(number);
+   const tiles=document.createElement("div");tiles.className="tiles";
+   guess.forEach((t,i)=>{
+     const input=document.createElement("input");input.className="tile";if(t.color!=="unknown")input.classList.add(t.color);
+     input.maxLength=1;input.value=t.letter;input.autocomplete="off";input.spellcheck=false;
+     input.setAttribute("aria-label",`Guess ${row+1}, position ${i+1}, ${t.color}`);
+     input.addEventListener("input",()=>{
+       const typed=input.value.replace(/[^a-z]/gi,"").toLowerCase();
+       t.letter=typed.slice(-1); input.value=t.letter;
+       if(t.letter && i<4) tiles.children[i+1].focus();
+     });
+     input.addEventListener("keydown",e=>{
+       if(e.key==="ArrowRight"&&i<4){e.preventDefault();tiles.children[i+1].focus();}
+       else if(e.key==="ArrowLeft"&&i>0){e.preventDefault();tiles.children[i-1].focus();}
+       else if(e.key==="Backspace"){
+         e.preventDefault();
+         if(t.letter){t.letter="";input.value="";}
+         if(i>0){const prev=tiles.children[i-1];prev.focus();prev.value="";guess[i-1].letter="";}
+       }
+       else if(e.key==="Enter")solve();
+     });
+     const cycle=(reverse=false)=>{let n=colors.indexOf(t.color);t.color=colors[(n+(reverse?3:1))%4];input.className="tile";if(t.color!=="unknown")input.classList.add(t.color);input.setAttribute("aria-label",`Guess ${row+1}, position ${i+1}, ${t.color}`);};
+     input.addEventListener("click",()=>cycle());input.addEventListener("contextmenu",e=>{e.preventDefault();cycle(true);});
+     tiles.appendChild(input);
+   });
+   line.appendChild(tiles);wrap.appendChild(line);
+ });
+}
+function normalize(s){return s.toLowerCase().replace(/[^a-z]/g,"");}
+function getConstraints(){
+ const required=Array(26).fill(0), forbidden=Array(26).fill(Infinity), green=Array(5).fill(""), yellow=[];
+ const active=guesses.filter(g=>g.some(t=>t.letter));
+ for(const guess of active){
+   const positive=Array(26).fill(0), gray=Array(26).fill(0);
+   guess.forEach((t,pos)=>{
+     if(!t.letter)return;
+     const n=t.letter.charCodeAt(0)-97;
+     if(t.color==="green"){if(green[pos]&&green[pos]!==t.letter)return;green[pos]=t.letter;positive[n]++;}
+     else if(t.color==="yellow"){yellow.push({letter:t.letter,pos});positive[n]++;}
+     else if(t.color==="gray")gray[n]++;
+   });
+   for(let n=0;n<26;n++){
+     required[n]=Math.max(required[n],positive[n]);
+     if(gray[n]>0)forbidden[n]=Math.min(forbidden[n],positive[n]);
+   }
+ }
+ return {green,yellow,required,forbidden,absent:normalize($("grayLetters").value)};
+}
+function matchesWord(word,c){
+ for(let i=0;i<5;i++)if(c.green[i]&&word[i]!==c.green[i])return false;
+ for(const y of c.yellow)if(word[y.pos]===y.letter||!word.includes(y.letter))return false;
+ const counts=Array(26).fill(0);for(const ch of word)counts[ch.charCodeAt(0)-97]++;
+ for(let n=0;n<26;n++){
+   if(counts[n]<c.required[n]||counts[n]>c.forbidden[n])return false;
+ }
+ for(const ch of c.absent){const n=ch.charCodeAt(0)-97;if(!c.required[n]&&word.includes(ch))return false;}
+ return true;
+}
+function solve(){
+ if(!words.length){$("count").textContent="0";$("results").className="empty";$("results").textContent="Load a word list first.";return;}
+ const c=getConstraints();matches=words.filter(w=>matchesWord(w,c));
+ $("count").textContent=matches.length.toLocaleString();
+ const results=$("results");results.className=matches.length?"wordlist":"empty";results.innerHTML="";
+ if(!matches.length)results.textContent="No matches. Check the clues or load a broader dictionary.";
+ else{const frag=document.createDocumentFragment();matches.slice(0,2000).forEach(w=>{const el=document.createElement("div");el.className="word";el.textContent=w.toUpperCase();frag.appendChild(el);});results.appendChild(frag);if(matches.length>2000){const note=document.createElement("div");note.className="status";note.textContent=`Showing first 2,000 of ${matches.length.toLocaleString()} matches. Export to get all.`;results.appendChild(note);}}
+ $("copyBtn").disabled=!matches.length;$("downloadBtn").disabled=!matches.length;$("resultStatus").textContent=`Checked ${words.length.toLocaleString()} five-letter words.`;
+}
+function loadWords(raw,label){words=[...new Set(raw.toLowerCase().split(/\s+/).map(w=>w.trim()).filter(w=>/^[a-z]{5}$/.test(w)))].sort();$("dictBadge").textContent=label;$("dictionaryStatus").textContent=`Loaded ${words.length.toLocaleString()} unique five-letter words from ${label}.`;solve();}
+$("solveBtn").addEventListener("click",solve);
+$("clearBtn").addEventListener("click",()=>{guesses=Array.from({length:5},()=>Array.from({length:5},()=>({letter:"",color:"gray"})));$("grayLetters").value="";makeTiles();matches=[];$("count").textContent="0";$("results").className="empty";$("results").textContent=words.length?"Enter clues and find matches.":"Load a word list first.";$("copyBtn").disabled=true;$("downloadBtn").disabled=true;$("resultStatus").textContent="";});
+$("dictionaryFile").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{loadWords(await file.text(),file.name);}catch(err){$("dictionaryStatus").textContent="Could not read the file. Please choose a plain-text dictionary.";}e.target.value="";});
+$("sampleBtn").addEventListener("click",()=>loadWords("about above actor acute admit adopt adult after again agent agree alarm album alert alien alike alive alone alter angry apple apply arena arise audio avoid beach began being below bench birth black blame blank blast blind block blood board brain brave bread break brick bring broad brown build cable carry catch cause chain chair chart chase cheap check chest chief child claim class clean clear click climb clock close cloud coach coast could count court cover craft cream crime cross crowd crown cycle dance dealt death delay depth doubt dozen draft drama dream dress drink drive earth eight elder empty enemy enjoy enter equal error event every exact exist extra faith false fancy fault favor feast fence field fifth fight final first flame flash floor focus force forth forty found frame frank fresh front fruit funny giant given glass globe glory going grace grade grand grant grass great green group grown guard guess guest guide habit happy heart heavy hobby horse hotel house human humor ideal image imply index inner input issue joint judge known label labor large laser later laugh layer learn lease least leave legal level light limit local logic loose lucky lunch magic major maker march match maybe mayor metal might minor model money month moral motor mount mouse mouth movie music naked nerve never night noise north noted novel nurse occur ocean offer often order other owner paint panel paper party peace phase phone photo piano piece pilot pitch place plain plane plant plate point pound power press price pride prime print prior prize proof proud prove queen quick quiet quite radio raise range rapid ratio reach ready refer right rival river rough round route royal rural scale scene scope score sense serve seven shall shape share sharp sheet shelf shell shift shine shirt shock shoot short shown sight since sixth sixty skill sleep slice slide small smart smell smile smoke solid solve sorry sound south space speak speed spend split sport staff stage stair stake stand start state steam steel steep stick still stock stone stood store storm story strip stuck study stuff style sugar suite super sweet table taken taste teach teeth their theme there these thick thing think third those three throw tight times title today topic total touch tough tower track trade train treat trend trial tried trust truth twice uncle under union unity until upper upset urban usage usual valid value video visit vital voice waste watch water wheel where which while white whole woman women world worry worse worst worth would write wrong wrote youth", "Tiny test list"));
+$("copyBtn").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(matches.join("\n"));$("resultStatus").textContent="Copied all matches to clipboard.";}catch(e){$("resultStatus").textContent="Clipboard blocked by browser. Use Export .txt instead.";}});
+$("downloadBtn").addEventListener("click",()=>{const blob=new Blob([matches.join("\n")+"\n"],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="wordle-matches.txt";a.click();URL.revokeObjectURL(url);});
+makeTiles();
+})();
+</script>
+</body>
+</html>
