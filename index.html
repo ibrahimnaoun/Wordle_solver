@@ -39,15 +39,15 @@ button,.file-button{border:1px solid var(--line);background:var(--panel2);color:
     </section>
     <section class="panel">
       <div class="result-head"><div><h2>Possible words</h2><div class="hint" style="margin:4px 0 0">Alphabetical matches</div></div><div style="text-align:right"><div class="stat" id="count">0</div><div class="stat-sub">matches</div></div></div>
-      <div id="results" class="empty">Load a dictionary, enter clues, then find matches.</div>
+      <div id="results" class="empty">Loading dictionary…</div>
       <div class="actionrow"><button id="copyBtn" disabled>Copy results</button><button id="downloadBtn" disabled>Export .txt</button></div>
       <div class="status" id="resultStatus"></div>
     </section>
     <section class="panel full">
       <h2>Your dictionary</h2>
-      <div class="hint">Load any plain-text word list. One word per line works best; the app keeps unique five-letter words containing only A–Z.</div>
+      <div class="hint">The app tries to load <code>five_letter_words.txt</code> automatically when hosted online. You can also choose another plain-text word list manually.</div>
       <div class="row"><label class="file-button" for="dictionaryFile">Choose word-list file</label><input class="file-input" type="file" id="dictionaryFile" accept=".txt,.dic,.list,text/plain"><button id="sampleBtn">Load tiny test list</button></div>
-      <div class="status" id="dictionaryStatus">No word list loaded yet. You can build and test the app now with the tiny test list, then replace it with your full dictionary later.</div>
+      <div class="status" id="dictionaryStatus">Trying to load five_letter_words.txt automatically… If that fails, choose a word-list file or load the tiny test list.</div>
       <div class="notice warn"><strong>Note:</strong> a comprehensive dictionary may include obscure words the official Wordle game won't accept. The solver only checks whether a word is in your loaded list and fits the clues.</div>
     </section>
   </div>
@@ -140,6 +140,21 @@ $("sampleBtn").addEventListener("click",()=>loadWords("about above actor acute a
 $("copyBtn").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(matches.join("\n"));$("resultStatus").textContent="Copied all matches to clipboard.";}catch(e){$("resultStatus").textContent="Clipboard blocked by browser. Use Export .txt instead.";}});
 $("downloadBtn").addEventListener("click",()=>{const blob=new Blob([matches.join("\n")+"\n"],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="wordle-matches.txt";a.click();URL.revokeObjectURL(url);});
 makeTiles();
+// Auto-load the dictionary stored beside index.html (works when hosted, e.g. GitHub Pages).
+// Browsers may block fetch() for local file:// pages, so the manual file picker remains available.
+(async function autoLoadDictionary(){
+ try {
+   const response = await fetch("./five_letter_words.txt", { cache: "no-cache" });
+   if (!response.ok) throw new Error(`HTTP ${response.status}`);
+   const raw = await response.text();
+   if (!raw.trim()) throw new Error("Dictionary file is empty");
+   loadWords(raw, "five_letter_words.txt (automatic)");
+ } catch (err) {
+   $("dictionaryStatus").textContent = "Automatic dictionary loading did not work. If you're viewing this on GitHub Pages, check that five_letter_words.txt is in the same folder as index.html. Otherwise, choose the file manually.";
+   $("dictBadge").textContent = "No dictionary loaded";
+   $("results").textContent = "Choose a dictionary, enter clues, then find matches.";
+ }
+})();
 })();
 </script>
 </body>
