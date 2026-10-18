@@ -1,8 +1,13 @@
 # Wordle Solver
 
+## 🚀 Live Demo
+
+[**Try Wordle Solver**](https://ibrahimnaoun.github.io/Wordle_solver/)
+
 A lightweight, offline Wordle solver built with HTML, CSS, and JavaScript.
 
 Enter your guesses, mark each letter as green, yellow, or gray, and find words that match your clues.
+
 
 ## Features
 
